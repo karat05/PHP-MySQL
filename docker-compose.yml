@@ -1,0 +1,32 @@
+services:
+  # Сервер Базы Данных
+  db:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: my_app_db
+      MYSQL_USER: app_user
+      MYSQL_PASSWORD: app_password
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # PHP Приложение
+  app:
+    build: .
+    volumes:
+      - ./src:/var/www/html  # Монтируем папку с кодом (синхронизация)
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "80:80" # Веб-доступ по адресу http://localhost
+    environment:
+      DB_HOST: db
+      DB_USER: app_user
+      DB_PASSWORD: app_password
+      DB_NAME: my_app_db
