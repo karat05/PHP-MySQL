@@ -1,0 +1,39 @@
+name: PHP + MySQL CI
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name:  Checkout кода
+        uses: actions/checkout@v4
+
+      - name: ️ Сборка и запуск контейнеров
+        run: |
+          docker compose build
+          docker compose up -d
+
+      - name:  Ожидание запуска БД
+        run: sleep 5
+
+      - name: 🔍 Проверка подключения к базе
+        run: |
+          docker compose exec -T app php -r "
+            try {
+              \$pdo = new PDO('mysql:host=db;dbname=my_app_db', 'app_user', 'app_password');
+              echo '✅ CI Test: База данных доступна!\n';
+            } catch (PDOException \$e) {
+              echo '❌ CI Test: Ошибка базы данных. ' . \$e->getMessage() . '\n';
+              exit(1);
+            }
+          "
+
+      - name: 📜 Логи (если упало)
+        if: failure()
+        run: docker compose logs
